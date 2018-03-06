@@ -7,6 +7,8 @@ class Server:
     def __init__(self, no_of_tasks, port_no):
         self.port = port_no
         self.tasks = []
+        self.client_task_dictionary = {}
+        self.found_clients = False
         for i in range(1, no_of_tasks + 1):
             self.tasks.append(i)
 
@@ -22,14 +24,29 @@ class Server:
         while(len(self.tasks) > 0 ):
             print("waiting for a client to accept load")
             connection, client_address = sock.accept()
-            try:
-                print("connection from: ", client_address)
-                next_i= random.randint(0,len(self.tasks) - 1)
-                message = "This is a message."
-                connection.sendall(message.encode('utf-8'))
-                self.tasks.pop(next_i)
-            finally:
-                connection.close()
+            message = connection.recv(1024).decode('utf-8')
+            is_message_guid = is_guid(message)
+
+            if(not is_message_guid):
+                print("Unknown message" + message)
+                continue
+
+            client_id = parse_guid(message)
+            if(not self.found_clients):
+                self.found_clients = True
+
+            self.client_task_dictionary[client_id] = -1
+            message = connection.recv(1024).decode('utf-8')
+            if(message == "NEED_NEW_TASK"):
+                try:
+                    print("connection from: ", client_address)
+                    next_i= random.randint(0,len(self.tasks) - 1)
+                    load = self.tasks[next_i]
+                    connection.sendall(str(load).encode('utf-8'))
+                    self.client_task_dictionary[client_id] = load
+                    self.tasks.pop(next_i)
+                finally:
+                    connection.close()
         sock.close()
 
 my_server = Server(1,10000)
