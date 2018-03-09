@@ -24,7 +24,7 @@ class Client:
             task_status = "Could not parse instruction:" + string
         else:
             load = int(string)
-            print("Performing task ", load, " will take ", load, "seconds to complete")
+            print("Performing task ", load, ", Will take ", load, "seconds to complete")
             try:
                 time.sleep(load)
                 task_status = "Completed task"
@@ -37,17 +37,10 @@ class Client:
 
         print("Starting client:", self.client_id)
         # Create a TCP/IP socket
-        
-
         # Connect the socket to the port where the server is listening
         server_address = ('localhost', self.server_port)
         print('connecting to %s port %s' % server_address)
-        #try:
-        #    sock.connect(server_address)
-        #except:
-        #    print("Could not connect to server. Shutting down client.")
-        #    return
-        #sock.close()
+
         while(True):
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -61,32 +54,21 @@ class Client:
                 sock.sendall("NEED_NEW_TASK".encode('utf-8'))
 
                 instruction_type = sock.recv(2).decode('utf-8')
-                if(len(instruction_type) == 0):
-                    xda = 1
                 instruction_type = int(instruction_type)
+
                 if(instruction_type == -1):
                     instruction = sock.recv(20).decode('utf-8')
                     print("Received instruction: ", instruction)
                     task_status = self.perform_task(instruction)
                     print("Task Status:", task_status,", Instruction: ", instruction)
                 if(instruction_type == -2):
-                    instruction = sock.recv(9).decode('utf-8')
-                    print("Received instruction: ", instruction)
+                    print("Received SHUT_DOWN instruction")
                     break
 
             finally:
                 sock.close()
 
         print("Shutting down Client", self.client_id)
-        #task = sock.recv(1024).decode('utf-8')
-        #print(task)
-
-        #sock.sendall("NEED_NEW_TASK".encode('utf-8'))
-        #message = sock.recv(1024).decode('utf-8')
-
-        #print("received:",message)
-        #print("shutting down")
-
         sock.close()
 
 #my_client = Client(10000)
