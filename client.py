@@ -4,7 +4,7 @@ import random
 
 class Client:
     def __init__(self, port_no):
-        self.port = port_no
+        self.server_port = port_no
 
     def connect(self):
 
@@ -12,8 +12,11 @@ class Client:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # Connect the socket to the port where the server is listening
-        server_address = ('localhost', self.port)
+        server_address = ('localhost', self.server_port)
         print('connecting to %s port %s' % server_address)
+        sock.connect(server_address)
+        sock.
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(server_address)
 
         message = "This is a message."
