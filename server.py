@@ -1,7 +1,7 @@
 import socket
 import sys
 import random
-
+from uuid import UUID
 class Server:
 
     def __init__(self, no_of_tasks, port_no):
@@ -9,88 +9,100 @@ class Server:
         self.tasks = []
         self.client_task_dictionary = {}
         self.found_clients = False
+        self.client_list = []
         for i in range(1, no_of_tasks + 1):
             self.tasks.append(i)
+
+    def parse_guid(self, guid_string, version = 4):
+        try:
+            uuid_obj = UUID(guid_string, version=version)
+            return uuid_obj
+        except:
+            return False
+
+    def all_clients_are_free(self):
+        all_clients_free = True
+        for client in self.client_task_dictionary:
+            if(self.client_task_dictionary[client] != -1):
+                all_clients_free = False
+                break
+        return all_clients_free
 
     def launch(self):
         #server socket setup and binding
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = ('localhost', self.port)
-        print (sys.stderr, 'starting up on %s port %s' % server_address)
+        print ('starting up on %s port %s' % server_address)
         sock.bind(server_address)
 
         sock.listen(1)
         
-        accepted_first_client = False
+        first_client_accepted = False
 
-        try:
-            while(not accepted_first_client):
-                connection, client_address = sock.accept()
-                print(client_address)
-                #message = connection.recv(13).decode('utf-8')
-                #if(message == "NEED_NEW_TASK"):
-                #    accepted_first_client = True
-                accepted_first_client = True
+        while(not first_client_accepted):
+            connection, client_id = sock.accept()
+            guid_message = connection.recv(36).decode('utf-8')
+            print("received guid_message:", guid_message)
+            guid = self.parse_guid(guid_message, 4)
+            if(not guid):
+                connection.close()
+                continue
+            message = connection.recv(13).decode('utf-8')
+            if(message == "NEED_NEW_TASK"):
+                first_client_accepted = True
+                print("Sending task type -1 from first loop")
+                connection.sendall(str(-1).encode('utf-8'))
+                next_i= random.randint(0,len(self.tasks) - 1)
+                load = self.tasks[next_i]
+                print("Sending task ", load,"from first loop")
+                connection.sendall(str(load).encode('utf-8'))
+                self.client_task_dictionary[guid] = load
+                self.tasks.pop(next_i)
 
-    
-            #next_i= random.randint(0,len(self.tasks) - 1)
-            #connection.sendall(str(self.tasks[next_i]).encode('utf-8'))
-            #self.client_task_dictionary[client_address] = self.tasks[next_i]
-        finally:
             connection.close()
 
-        accepted_first_client = False
+        while(len(self.tasks)>0):
+            connection, client_id = sock.accept()
+            guid_message = connection.recv(36).decode('utf-8')
+            print("received guid_message:", guid_message)
+            guid = self.parse_guid(guid_message)
+            if(not guid):
+                connection.close()
+                continue
+            message = connection.recv(13).decode('utf-8')
+            if(message == "NEED_NEW_TASK"):
+                print("Sending task type -1 from second loop")
+                connection.sendall(str(-1).encode('utf-8'))
 
-        try:
-            while(not accepted_first_client):
-                connection, client_address = sock.accept()
-                print(client_address)
-                #message = connection.recv(13).decode('utf-8')
-                #if(message == "NEED_NEW_TASK"):
-                #    accepted_first_client = True
-                accepted_first_client = True
-    
-            #next_i= random.randint(0,len(self.tasks) - 1)
-            #connection.sendall(str(self.tasks[next_i]).encode('utf-8'))
-            #self.client_task_dictionary[client_address] = self.tasks[next_i]
-        finally:
+                next_i= random.randint(0,len(self.tasks) - 1)
+                load = self.tasks[next_i]
+                print("Sending task ", load, "from second loop")
+                connection.sendall(str(load).encode('utf-8'))
+                self.client_task_dictionary[guid] = load
+                self.tasks.pop(next_i)
             connection.close()
-        #while(not all_clients_have_completed()):
-            #print("waiting for a client to accept load")
-            #connection, client_address = sock.accept()
-            #message = connection.recv(1024).decode('utf-8')
-            #is_message_guid = is_guid(message)
 
-            #if(not is_message_guid):
-            #    print("Unknown message" + message)
-            #    continue
+        while(not self.all_clients_are_free()):
+            connection, client_id = sock.accept()
+            guid_message = connection.recv(36).decode('utf-8')
+            print("received guid_message:", guid_message)
+            guid = self.parse_guid(guid_message)
+            if(not guid):
+                connection.close()
+                continue
+            message = connection.recv(13).decode('utf-8')
+            if(message == "NEED_NEW_TASK"):
+                print("Sending SHUT_DOWN (task 2) signal")
+                connection.sendall(str(-2).encode('utf-8'))
+                self.client_task_dictionary[guid] = -1
+                print("Sending SHUT DOWN signal")
+                connection.sendall("SHUT_DOWN".encode('utf-8'))
+            connection.close()
 
-            #client_id = parse_guid(message)
-            #if(not self.found_clients):
-            #    self.found_clients = True
+        print("Completed all tasks using: ",len(self.client_task_dictionary)," clients")
+        print("Shutting down server...")
+        sock.close()
 
-            #self.client_task_dictionary[client_id] = -1
-            #message = connection.recv(1024).decode('utf-8')
-            #if(message == "NEED_NEW_TASK"):
-            #    try:
-            #        print("connection from: ", client_address)
-            #        next_i= random.randint(0,len(self.tasks) - 1)
-            #        load = self.tasks[next_i]
-            #        connection.sendall(str(load).encode('utf-8'))
-            #        self.client_task_dictionary[client_id] = load
-            #        self.tasks.pop(next_i)
-            #    finally:
-            #        connection.close()
 
-        #sock.close()
-
-        def all_clients_have_completed():
-            all_done = True
-            for client in client_task_dictionary:
-                if(client_task_dictionary[client]!=-1):
-                    all_done = False
-                    break
-            return all_done
-
-my_server = Server(1,10000)
+my_server = Server(10,10000)
 my_server.launch()
