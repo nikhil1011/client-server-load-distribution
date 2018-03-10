@@ -10,8 +10,9 @@ class Server:
         self.client_task_dictionary = {}
         self.found_clients = False
         self.client_list = []
-        for i in range(1, no_of_tasks + 1):
+        for i in range(0, no_of_tasks):
             self.tasks.append(i)
+            print(i)
 
     def parse_guid(self, guid_string, version = 4):
         try:
@@ -38,12 +39,12 @@ class Server:
 
     def send_random_task(self, guid, connection):
         connection.sendall(str(-1).encode('utf-8'))
-        next_i= random.randint(0,len(self.tasks) - 1)
-        load = self.tasks[next_i]
+        #next_i= random.randint(0,len(self.tasks) - 1)
+        load = self.tasks[0]
         print("Sending task ", load)
         connection.sendall(str(load).encode('utf-8'))
         self.client_task_dictionary[guid] = load
-        self.tasks.pop(next_i)
+        self.tasks.pop(0)
 
     def launch(self):
         #server socket setup and binding
@@ -53,20 +54,6 @@ class Server:
         sock.bind(server_address)
 
         sock.listen(1)
-        
-        first_client_accepted = False
-
-        while(not first_client_accepted):
-            guid,connection = self.get_new_connection_GUID(sock)
-            if(not guid):
-                connection.close()
-                continue
-            message = connection.recv(13).decode('utf-8')
-            if(message == "NEED_NEW_TASK"):
-                first_client_accepted = True
-                self.send_random_task(guid,connection)
-
-            connection.close()
 
         while(len(self.tasks)>0):
             guid,connection = self.get_new_connection_GUID(sock)
