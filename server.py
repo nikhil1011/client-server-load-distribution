@@ -12,7 +12,6 @@ class Server:
         self.client_list = []
         for i in range(0, no_of_tasks):
             self.tasks.append(i)
-            print(i)
 
     def parse_guid(self, guid_string, version = 4):
         try:
