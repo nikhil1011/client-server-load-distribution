@@ -14,7 +14,5 @@ To run this program,
 
 10 indicates the number of clients to spawn, 10001 indicates the port to connect to
 
-- [x] To Do check
-
 Ping me on Gitter (handle: @nikhil1011) for any questions.
   
